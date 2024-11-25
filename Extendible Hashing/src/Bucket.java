@@ -8,10 +8,10 @@ public class Bucket {
 	 * @param bitDepth the bit depth of the given bucket
 	 * @param bitPattern the bit pattern associated with the given bucket
 	 */
-	public Bucket(int bitDepth, String bitPattern) {
+	public Bucket(int bitDepth, String bitPattern, int bucketSize) {
 		this.localBitDepth = bitDepth;
 		this.bitPattern = bitPattern;
-		keysInBucket = new String[localBitDepth];
+		keysInBucket = new String[bucketSize];
 	}
 	
 	/**
@@ -58,6 +58,17 @@ public class Bucket {
 		return bitPattern;
 	}
 	
+	/**
+	 * Setter function to set a new bit pattern
+	 * @param newPattern the new bit pattern
+	 */
+	public void setBitPattern(String newPattern) {
+		bitPattern = newPattern;
+	}
+	
+	public int getBitDepth() {
+		return localBitDepth;
+	}
 	/**
 	 * Getter function to get all keys in the bucket
 	 * @return the array of keys in the bucket

@@ -27,7 +27,7 @@ public class Hashing {
 		bucketSize = Integer.parseInt(args[0]);
 		keyLength = Integer.parseInt(args[1]);
 		
-		GlobalDirectory globalDirectory = new GlobalDirectory(1);
+		GlobalDirectory globalDirectory = new GlobalDirectory(0, bucketSize);
 		
 		System.out.println("what would you like to do?");
 		String input = keyboard.nextLine();
@@ -36,13 +36,17 @@ public class Hashing {
 			if (input.charAt(0) == 'i') {
 
 				if (input.substring(2, input.length()).length() == (keyLength)) {
-					globalDirectory.insertKey(input.substring(2));
+					if (globalDirectory.insertKey(input.substring(2))) {
+						System.out.println("SUCCESS");
+					} else {
+						System.out.println("FAILED");
+					}
 				} else {
 					System.out.println("ERROR: bit-string length is longer than the key-length of " + keyLength);
 				}
 				
 				
-			} else if (input.charAt(0) =='s') {
+			} else if (input.charAt(0) == 's') {
 				if (input.substring(2, input.length()).length() == (keyLength)) {
 					int search = globalDirectory.searchKey(input.substring(2));
 					
