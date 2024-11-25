@@ -3,10 +3,10 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 /**
- * A class that runs a ranked choice vote election
+ * A class that runs extendible-hashing code
  * 
- * @author Gemma Joy Bertain and Ben Heck
- * @version 11.9.2023
+ * @author Gemma Joy Bertain 
+ * @version 11.25.2024
  */
 public class Hashing {
 	public static void main(String[] args) {
