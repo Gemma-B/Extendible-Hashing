@@ -69,12 +69,24 @@ public class Bucket {
 	public int getBitDepth() {
 		return localBitDepth;
 	}
+	
+	public void setBitDepth(int newBitDepth) {
+		localBitDepth = newBitDepth; 
+	}
 	/**
 	 * Getter function to get all keys in the bucket
 	 * @return the array of keys in the bucket
 	 */
 	public String[] getKeys() {
 		return keysInBucket;
+	}
+	
+	/**
+	 * A method to clear keys
+	 * @param bucketSize
+	 */
+	public void clearKeys(int bucketSize) {
+		keysInBucket = new String[bucketSize];
 	}
 	
 	/**

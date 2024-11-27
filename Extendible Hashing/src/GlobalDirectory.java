@@ -1,47 +1,103 @@
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.TreeMap;
+
 public class GlobalDirectory {
-	public ArrayList<Bucket> globalDirectory = new ArrayList<Bucket>();
+	public HashMap<String, Bucket> globalDirectory = new HashMap<String, Bucket>();
 	public int globalBitDepth = 0;
 	public int bucketSize;
 	
-	/**
-	 * Creating a global directory
-	 * @param bitDepth the size of the bit depth
-	 */
-	public GlobalDirectory(int bitDepth, int bucketSize) {
-		globalBitDepth = bitDepth;
+	
+	public GlobalDirectory(int bucketSize) {
+		// creating first bucket
 		this.bucketSize = bucketSize;
-		Bucket firstBucket = new Bucket(0, "", this.bucketSize);
-		globalDirectory.add(firstBucket);
+		Bucket firstBucket = new Bucket(0, "" , bucketSize);
+		globalDirectory.put("", firstBucket);
+	}
+	
+	/**
+	 * Trying to rehash our directory
+	 * @param bitPatternToRehash the pattern of the bucket we need to rehash
+	 */
+	public void rehash(String bitPatternToRehash) {
+		// global bit depth is increased by one
+		globalBitDepth++;
+		
+		// creating new temporary hashmap
+		HashMap<String, Bucket> tempDirectory = new HashMap<String, Bucket>();
+
+		// looping through every key in the current global directory
+		for (String key : globalDirectory.keySet()) {
+		
+			// creating a new bucket thats the same as the current bucket in the directory
+			Bucket bucket = globalDirectory.get(key);
+			
+			// checking if this bucket needs to be rehashed
+			if (key.startsWith(bitPatternToRehash)) {
+				
+				// our new bit depth is one more than our old bit depth
+				int newBitDepth = globalDirectory.get(bitPatternToRehash).getBitDepth() + 1;
+				Bucket bucket0 = new Bucket(newBitDepth, bitPatternToRehash + "0", this.bucketSize);
+				Bucket bucket1 = new Bucket(newBitDepth, bitPatternToRehash + "1", this.bucketSize);
+				
+				// getting the keys we need to rehash
+				String[] relocateKeys = globalDirectory.get(bitPatternToRehash).getKeys();
+				
+				// looping through every key and figuring out which bucket it belongs in, out of the two options
+				for (String s : relocateKeys) {
+					String bitPattern = s.substring(0, newBitDepth);
+					
+					// all of our keys need to be relocated to one of two new buckets
+					if (bitPattern.endsWith("0")){
+						bucket0.insertKey(s);
+					} else {
+						bucket1.insertKey(s);
+					}
+				}
+				// inserting both of our buckets into the temporary directory
+				tempDirectory.put(bitPatternToRehash + "0", bucket0);
+				tempDirectory.put(bitPatternToRehash + "1", bucket1);
+				
+			} else {
+				// bucket doesn't need to be rehashed
+				if (bucket.getBitDepth() < globalBitDepth) {
+					// keys needs to be split, but they still point to the same bucket
+					tempDirectory.put(key + "0", bucket);
+					tempDirectory.put(key + "1", bucket);
+					
+				} else {
+					// bucket is good to go! just insert it directly
+					tempDirectory.put(key, bucket);
+				}
+			}
+		}
+		globalDirectory = tempDirectory;
 	}
 	
 	/**
 	 * A function that inserts a key into the correct local directory
 	 * @param key the key we want to insert
 	 */
-	public boolean insertKey(String key) {
+	public boolean insertKey(String k) {
 		
-		// make sure key does not exist in our directory
-		if (searchKey(key) == -1) {
-			for(int i = 0; i < globalDirectory.size(); i++) {
-				// if this bucket starts with the same pattern, then we can insert our key :)
-				if (globalDirectory.get(i).getBitPattern().equals(key.substring(0, globalDirectory.get(i).getBitDepth()))) {
-					boolean needToRehash = !globalDirectory.get(i).insertKey(key); // true if we need to rehash
-					
-					// if insert returns false, then we need to rehash
-					if (needToRehash) {
-						rehash(key);
-						i--;
+		// key does not already exist
+		if (searchKey(k) == -1) {
+			for(String key: this.globalDirectory.keySet()) {
+
+				// if the two bit patterns agree with each other
+				if (key.equals(k.substring(0, key.length()))) {
+
+					if (!globalDirectory.get(key).insertKey(k)) {
+						String rehashBitPattern = globalDirectory.get(key).getBitPattern(); // the bit pattern of the bucket that needs to be rehashed
+						rehash(rehashBitPattern);
+						insertKey(k);
 					} else {
-						globalDirectory.get(i).insertKey(key);
+						globalDirectory.get(key).insertKey(k);
 					}
 				}
 			}
 			return true;
-			
-		} else {
-			return false;
 		}
+		return false;
 	}
 	
 	/**
@@ -49,15 +105,15 @@ public class GlobalDirectory {
 	 * @param key what key we're searching for
 	 * @return the index of the directory a key is contained in, and -1 if the key doesn't exist 
 	 */
-	public int searchKey(String key) {
-		for(int i = 0; i < globalDirectory.size(); i++) {
+	public int searchKey(String k) {
+		
+		for(String key: this.globalDirectory.keySet()) {
 			
 			// if this bucket starts with the same pattern, then we can search this bucket for the key
-			if (globalDirectory.get(i).getBitPattern().equals(key.substring(0, globalBitDepth))) {
-				
+			if (globalDirectory.get(key).getBitPattern().equals(k.substring(0, globalDirectory.get(key).getBitDepth()))) {
 				// if the local search found the key, then its found!
-				if (globalDirectory.get(i).searchKey(key)) {
-					return i;
+				if (globalDirectory.get(key).searchKey(k)) {
+					return 1;
 				}
 			}
 		}
@@ -66,62 +122,25 @@ public class GlobalDirectory {
 		return -1;
 	}
 	
-	/**
-	 * A method that rehashes a given bucket into two, and increases global bit depth if needed
-	 * @param key the key that tells us what bucket needs to be rehashed
-	 */
-	public void rehash(String key) {
-		int rehashedIndex = 0;
-		for(int i = 0; i < globalDirectory.size(); i++) {
-			
-			// if this bucket starts with the same pattern, then we can search this bucket for the key
-			if (globalDirectory.get(i).getBitPattern().equals(key.substring(0, globalBitDepth))) {
-				rehashedIndex = i;
-			}
-		}
-				
-		// storing the keys that must be rehashed once new local directories are created
-		String[] keysToBeRehashed = globalDirectory.get(rehashedIndex).getKeys();
-
-		// the new directory size must be the old directory size, plus 1
-		int newLocalDepth = globalDirectory.get(rehashedIndex).getBitPattern().length() + 1;
-		
-		// checking to see if we need to update globalDirectory size
-		if (newLocalDepth > globalBitDepth) {
-			globalBitDepth = newLocalDepth;
-			
-		}
-		// creating two new buckets with the new directory size, and the old bit pattern with a 0 or a 1 attached to it
-		Bucket bucket1 = new Bucket(newLocalDepth, globalDirectory.get(rehashedIndex).getBitPattern() + "0", bucketSize);
-		Bucket bucket2 = new Bucket(newLocalDepth, globalDirectory.get(rehashedIndex).getBitPattern() + "1", bucketSize);
-		
-		// adding our new buckets to the global directory right next to our old bucket
-		globalDirectory.set(rehashedIndex, bucket1);
-		globalDirectory.add(rehashedIndex + 1, bucket2);
-		
-		// recursively inserting all keys from the old bucket into the new buckets
-		for(int i = 0; i < keysToBeRehashed.length; i++) {
-			insertKey(keysToBeRehashed[i]);
-		}
-	}
-	
 	public String toString() {
+		// sorting our keys in a tree map
+		TreeMap<String, Bucket> sortedList = new TreeMap<>();
+		sortedList.putAll(globalDirectory);
+		
 		String str = "Global(" + globalBitDepth + ")\n";
-		for(int i = 0; i < globalDirectory.size(); i++) {
-			
-			if (globalDirectory.get(i).getBitDepth() != globalBitDepth) {
-					String localInfo = globalDirectory.get(i).toString();
-					
-					String firstElt = localInfo.substring(0, globalDirectory.get(i).getBitDepth());
-					String everythingElse = localInfo.substring(globalDirectory.get(i).getBitDepth(), localInfo.length());
-					
-					str += firstElt + "0" + everythingElse + "\n";
-					str += firstElt + "1" + everythingElse + "\n";
-					
-			} else {
-				str += globalDirectory.get(i).toString() +"\n";
+		
+		// iterating over the tree map so we have a sorted print statement :)
+		for (String key: sortedList.keySet()) {
+			str += key + ": " + "Local(" + globalDirectory.get(key).getBitDepth() + ")[" + globalDirectory.get(key).getBitPattern()
+					+ "*] = ["; 
+			String[] valuesInArray = globalDirectory.get(key).getKeys();
+			for (int i = 0; i < valuesInArray.length - 1; i++) {
+				str += valuesInArray[i] + ", ";
 			}
- 		}
+			
+			str += valuesInArray[valuesInArray.length - 1] + "]\n";
+		}
+		
 		return str;
 	}
 }
